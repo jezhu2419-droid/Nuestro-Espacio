@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Nuestro Espacio - Angélica & Tú</title>
+  <title>Nuestro Espacio - Angélica & Walter</title>
   
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -64,6 +64,28 @@
       font-weight: 700;
       letter-spacing: -0.5px;
       text-shadow: 0 1px 2px rgba(255, 255, 255, 0.6);
+    }
+
+    .user-selector {
+      margin-top: 10px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+
+    .user-selector select {
+      padding: 4px 10px;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.6);
+      background: rgba(255, 255, 255, 0.8);
+      font-family: inherit;
+      font-weight: 600;
+      color: var(--primary);
+      outline: none;
     }
 
     .flip-clock-container {
@@ -240,7 +262,6 @@
       gap: 10px;
     }
 
-    /* ESTILOS DE LA CARTA INTERACTIVA (CHECKBOX) */
     .checklist-item {
       display: flex;
       align-items: center;
@@ -250,12 +271,11 @@
       user-select: none;
     }
 
-    /* Sobre de Carta CSS */
     .envelope-icon {
       position: relative;
       width: 34px;
       height: 24px;
-      background: #fde047; /* Color del sobre */
+      background: #fde047;
       border-radius: 4px;
       border: 1.5px solid #eab308;
       box-shadow: 0 2px 4px rgba(0,0,0,0.1);
@@ -266,7 +286,6 @@
       justify-content: center;
     }
 
-    /* Solapa superior del sobre */
     .envelope-icon::before {
       content: '';
       position: absolute;
@@ -282,7 +301,6 @@
       z-index: 2;
     }
 
-    /* Papel asomando (cuando está abierta) */
     .envelope-icon::after {
       content: '';
       position: absolute;
@@ -296,7 +314,6 @@
       transition: all 0.3s ease;
     }
 
-    /* Corazón interior */
     .envelope-heart {
       position: absolute;
       font-size: 14px;
@@ -306,26 +323,22 @@
       transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     }
 
-    /* ESTADO CERRADO / COMPLETADO */
     .checklist-item.completed .envelope-icon {
       background: #fecdd3;
       border-color: #fda4af;
     }
 
-    /* Solapa se pliega hacia abajo al cerrarse */
     .checklist-item.completed .envelope-icon::before {
       border-top-color: #f43f5e;
       transform: rotateX(180deg);
     }
 
-    /* Papel se guarda dentro del sobre */
     .checklist-item.completed .envelope-icon::after {
       top: 3px;
       height: 0;
       opacity: 0;
     }
 
-    /* Muestra el corazón de lacre al estar cerrada */
     .checklist-item.completed .envelope-heart {
       opacity: 1;
       transform: scale(1);
@@ -548,6 +561,15 @@
         <div class="unit-label">Seg</div>
       </div>
     </div>
+
+    <!-- SELECTOR DE USUARIO -->
+    <div class="user-selector">
+      <span>📱 Soy:</span>
+      <select id="userSelect">
+        <option value="walter">Walter</option>
+        <option value="angelica">Angélica</option>
+      </select>
+    </div>
   </header>
 
   <main class="grid-container">
@@ -563,7 +585,7 @@
     <!-- 2. NOTAS DE AMOR -->
     <section class="card">
       <h2>💌 Notas de Amor</h2>
-      <input type="text" id="authorInput" style="margin-bottom: 8px;" placeholder="Tu nombre (Ej: Angélica / Tu Nombre)">
+      <input type="text" id="authorInput" style="margin-bottom: 8px;" placeholder="Tu nombre (Ej: Angélica / Walter)">
       <textarea id="noteInput" rows="3" placeholder="Escribe un mensaje especial..."></textarea>
       
       <label class="secret-checkbox-label">
@@ -625,6 +647,42 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
+    // CONFIGURACIÓN DE NOTIFICACIONES WHATSAPP
+    const PHONE_ANGELICA = "51977137274";
+    const PHONE_WALTER = "51983595342";
+
+    const userSelect = document.getElementById('userSelect');
+    const authorInput = document.getElementById('authorInput');
+
+    // Función para actualizar el input con el nombre adecuado según el usuario seleccionado
+    function updateAuthorName() {
+      const currentVal = userSelect.value;
+      if (authorInput) {
+        authorInput.value = currentVal === 'walter' ? 'Walter' : 'Angélica';
+      }
+    }
+
+    // Guardar preferencia de quién está usando el celular
+    if (localStorage.getItem('user_role')) {
+      userSelect.value = localStorage.getItem('user_role');
+    }
+    
+    // Cargar nombre por defecto al inicio
+    updateAuthorName();
+
+    // Actualizar nombre por defecto al cambiar el usuario
+    userSelect.addEventListener('change', () => {
+      localStorage.setItem('user_role', userSelect.value);
+      updateAuthorName();
+    });
+
+    function notifyPartnerByWhatsApp(message) {
+      const isWalter = userSelect.value === 'walter';
+      const targetPhone = isWalter ? PHONE_ANGELICA : PHONE_WALTER;
+      const url = `https://api.whatsapp.com/send?phone=${targetPhone}&text=${encodeURIComponent(message)}`;
+      window.open(url, '_blank');
+    }
+
     // CONTADOR FLIP CLOCK
     const startDate = new Date('2020-09-19T00:00:00');
 
@@ -673,6 +731,7 @@
         if (url) {
           await addDoc(collection(db, "photos"), { url: url, likes: 0, createdAt: new Date() });
           photoUrlInput.value = "";
+          notifyPartnerByWhatsApp("📸 ¡Hola amor! Acabo de agregar una nueva foto a nuestra galería en la página ❤️");
         }
       });
     }
@@ -710,7 +769,6 @@
     };
 
     // NOTAS DE AMOR
-    const authorInput = document.getElementById('authorInput');
     const noteInput = document.getElementById('noteInput');
     const secretCheck = document.getElementById('secretCheck');
     const addNoteBtn = document.getElementById('addNoteBtn');
@@ -719,7 +777,7 @@
     if (addNoteBtn && noteInput) {
       addNoteBtn.addEventListener('click', async () => {
         const text = noteInput.value.trim();
-        const author = authorInput.value.trim() || 'Alguien especial';
+        const author = authorInput.value.trim() || (userSelect.value === 'walter' ? 'Walter' : 'Angélica');
         const isSecret = secretCheck.checked;
 
         if (text) {
@@ -731,6 +789,15 @@
           });
           noteInput.value = "";
           secretCheck.checked = false;
+          
+          // Mantener el nombre de usuario activo por defecto
+          updateAuthorName();
+
+          const msg = isSecret 
+            ? `💌 Te he dejado una nota SECRETA 🔒 en nuestro espacio. ¡Entra a descubrirla!` 
+            : `💌 Te he dejado una nueva nota de amor en nuestra página. ¡Entra a leerla!`;
+          
+          notifyPartnerByWhatsApp(msg);
         }
       });
     }
@@ -789,21 +856,28 @@
 
     if (addTaskBtn && taskInput) {
       addTaskBtn.addEventListener('click', async () => {
-        if (taskInput.value.trim()) {
+        const val = taskInput.value.trim();
+        if (val) {
           await addDoc(collection(db, "tasks"), { 
-            text: taskInput.value.trim(), 
+            text: val, 
             completed: false, 
             createdAt: new Date() 
           });
           taskInput.value = "";
+          notifyPartnerByWhatsApp(`✨ ¡Agregué un nuevo plan a nuestra Bucket List! 👉 "${val}"`);
         }
       });
     }
 
     // @ts-ignore
-    window.toggleTask = async (id, currentStatus) => {
+    window.toggleTask = async (id, currentStatus, taskText) => {
       const taskRef = doc(db, "tasks", id);
-      await updateDoc(taskRef, { completed: !currentStatus });
+      const newStatus = !currentStatus;
+      await updateDoc(taskRef, { completed: newStatus });
+
+      if (newStatus) {
+        notifyPartnerByWhatsApp(`✉️❤️ ¡Acabo de cerrar el sobre y validar un plan de nuestra lista! 👉 "${taskText}"`);
+      }
     };
 
     onSnapshot(query(collection(db, "tasks"), orderBy("createdAt", "desc")), (snapshot) => {
@@ -816,7 +890,7 @@
         const div = document.createElement("div");
         div.className = "item-card";
         div.innerHTML = `
-          <div class="checklist-item ${isCompleted ? 'completed' : ''}" onclick="toggleTask('${item.id}', ${isCompleted})">
+          <div class="checklist-item ${isCompleted ? 'completed' : ''}" onclick="toggleTask('${item.id}', ${isCompleted}, '${data.text}')">
             <div class="envelope-icon">
               <span class="envelope-heart">❤️</span>
             </div>
@@ -880,12 +954,11 @@
 
           if (coords) {
             map.setView([coords.lat, coords.lon], 15);
-          } else {
-            alert("Guardamos el lugar en la lista.");
           }
 
           placeInput.value = "";
           addPlaceBtn.textContent = "Buscar y Guardar Lugar";
+          notifyPartnerByWhatsApp(`📍 ¡Guardé un nuevo lugar especial en nuestro mapa! 👉 "${placeName}"`);
         }
       });
     }
@@ -901,6 +974,7 @@
           lon: lon,
           createdAt: new Date()
         });
+        notifyPartnerByWhatsApp(`📍 ¡Marqué un nuevo punto en nuestro mapa! 👉 "${customName.trim()}"`);
       }
     });
 
@@ -962,6 +1036,7 @@
           const embedUrl = convertSoundCloudUrlToEmbed(inputVal);
           await setDoc(doc(db, "settings", "soundcloud"), { embedUrl: embedUrl });
           scUrlInput.value = "";
+          notifyPartnerByWhatsApp("🎵 ¡Actualicé la canción de nuestro rincón especial! Entra a escucharla.");
         }
       });
     }
