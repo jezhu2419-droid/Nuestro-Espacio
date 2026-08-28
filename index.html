@@ -30,7 +30,7 @@
 
     html, body {
       width: 100%;
-      overflow-x: hidden; /* Evita desplazamientos horizontales molestos en móvil */
+      overflow-x: hidden;
     }
 
     body {
@@ -66,7 +66,6 @@
       text-shadow: 0 1px 2px rgba(255, 255, 255, 0.6);
     }
 
-    /* Contador Adaptable a pantallas pequeñas */
     .flip-clock-container {
       display: flex;
       justify-content: center;
@@ -180,7 +179,6 @@
       text-shadow: 0 1px 2px rgba(255, 255, 255, 0.5);
     }
 
-    /* Tamaño de fuente 16px mínimo para prevenir Auto-Zoom de iOS Safari */
     input[type="text"], textarea {
       width: 100%;
       padding: 12px 14px;
@@ -240,6 +238,113 @@
       justify-content: space-between;
       align-items: center;
       gap: 10px;
+    }
+
+    /* ESTILOS DE LA CARTA INTERACTIVA (CHECKBOX) */
+    .checklist-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex: 1;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    /* Sobre de Carta CSS */
+    .envelope-icon {
+      position: relative;
+      width: 34px;
+      height: 24px;
+      background: #fde047; /* Color del sobre */
+      border-radius: 4px;
+      border: 1.5px solid #eab308;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      flex-shrink: 0;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* Solapa superior del sobre */
+    .envelope-icon::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 0;
+      height: 0;
+      border-left: 15.5px solid transparent;
+      border-right: 15.5px solid transparent;
+      border-top: 12px solid #ca8a04;
+      transform-origin: top;
+      transition: transform 0.3s ease;
+      z-index: 2;
+    }
+
+    /* Papel asomando (cuando está abierta) */
+    .envelope-icon::after {
+      content: '';
+      position: absolute;
+      top: -4px;
+      width: 22px;
+      height: 12px;
+      background: #ffffff;
+      border-radius: 2px 2px 0 0;
+      border: 1px solid #cbd5e1;
+      z-index: 1;
+      transition: all 0.3s ease;
+    }
+
+    /* Corazón interior */
+    .envelope-heart {
+      position: absolute;
+      font-size: 14px;
+      z-index: 3;
+      opacity: 0;
+      transform: scale(0);
+      transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    /* ESTADO CERRADO / COMPLETADO */
+    .checklist-item.completed .envelope-icon {
+      background: #fecdd3;
+      border-color: #fda4af;
+    }
+
+    /* Solapa se pliega hacia abajo al cerrarse */
+    .checklist-item.completed .envelope-icon::before {
+      border-top-color: #f43f5e;
+      transform: rotateX(180deg);
+    }
+
+    /* Papel se guarda dentro del sobre */
+    .checklist-item.completed .envelope-icon::after {
+      top: 3px;
+      height: 0;
+      opacity: 0;
+    }
+
+    /* Muestra el corazón de lacre al estar cerrada */
+    .checklist-item.completed .envelope-heart {
+      opacity: 1;
+      transform: scale(1);
+      animation: heartbeat 1.5s infinite alternate;
+    }
+
+    @keyframes heartbeat {
+      0% { transform: scale(0.9); }
+      100% { transform: scale(1.15); }
+    }
+
+    .checklist-text {
+      font-weight: 500;
+      transition: color 0.3s, text-decoration 0.3s;
+    }
+
+    .checklist-item.completed .checklist-text {
+      text-decoration: line-through;
+      color: #78716c;
     }
 
     .delete-btn-text {
@@ -400,7 +505,7 @@
       width: 100%;
       border-radius: 14px;
       z-index: 1;
-      touch-action: pan-x pan-y; /* Permite desplazamiento suave en pantallas táctiles */
+      touch-action: pan-x pan-y;
     }
 
     .map-hint {
@@ -677,7 +782,7 @@
       });
     });
 
-    // BUCKET LIST
+    // BUCKET LIST (CON CARTAS INTERACTIVAS Y CORAZÓN)
     const taskInput = document.getElementById('taskInput');
     const addTaskBtn = document.getElementById('addTaskBtn');
     const taskList = document.getElementById('taskList');
@@ -685,27 +790,45 @@
     if (addTaskBtn && taskInput) {
       addTaskBtn.addEventListener('click', async () => {
         if (taskInput.value.trim()) {
-          await addDoc(collection(db, "tasks"), { text: taskInput.value.trim(), createdAt: new Date() });
+          await addDoc(collection(db, "tasks"), { 
+            text: taskInput.value.trim(), 
+            completed: false, 
+            createdAt: new Date() 
+          });
           taskInput.value = "";
         }
       });
     }
 
+    // @ts-ignore
+    window.toggleTask = async (id, currentStatus) => {
+      const taskRef = doc(db, "tasks", id);
+      await updateDoc(taskRef, { completed: !currentStatus });
+    };
+
     onSnapshot(query(collection(db, "tasks"), orderBy("createdAt", "desc")), (snapshot) => {
       if (!taskList) return;
       taskList.innerHTML = "";
       snapshot.forEach((item) => {
+        const data = item.data();
+        const isCompleted = data.completed || false;
+
         const div = document.createElement("div");
         div.className = "item-card";
         div.innerHTML = `
-          <span>✨ ${item.data().text}</span>
+          <div class="checklist-item ${isCompleted ? 'completed' : ''}" onclick="toggleTask('${item.id}', ${isCompleted})">
+            <div class="envelope-icon">
+              <span class="envelope-heart">❤️</span>
+            </div>
+            <span class="checklist-text">${data.text}</span>
+          </div>
           <button class="delete-btn-text" onclick="deleteItem('tasks', '${item.id}')">🗑️</button>
         `;
         taskList.appendChild(div);
       });
     });
 
-    // LUGARES ESPECIALES (Optimizado para toques en móvil)
+    // LUGARES ESPECIALES
     delete L.Icon.Default.prototype._getIconUrl;
     L.Icon.Default.mergeOptions({
       iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
