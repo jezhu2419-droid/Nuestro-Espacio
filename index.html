@@ -1,0 +1,857 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Nuestro Espacio - Angélica & Tú</title>
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&family=Cormorant+Garamond:ital,wght@0,500;0,700;1,400&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+  <style>
+    :root {
+      --primary: #e11d48;
+      --primary-hover: #be123c;
+      --primary-light: rgba(255, 241, 242, 0.7);
+      --card-bg: rgba(255, 255, 255, 0.40);
+      --text: #1c1917;
+      --text-muted: #44403c;
+      --border-color: rgba(255, 255, 255, 0.4);
+      --radius: 20px;
+    }
+
+    * { 
+      box-sizing: border-box; 
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    html, body {
+      width: 100%;
+      overflow-x: hidden; /* Evita desplazamientos horizontales molestos en móvil */
+    }
+
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background: linear-gradient(rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.2)), 
+                  url('https://images.unsplash.com/photo-1597848212624-a19eb35e2651?q=80&w=1920&auto=format&fit=crop') no-repeat center center fixed;
+      background-size: cover;
+      color: var(--text);
+      margin: 0;
+      padding: 12px 10px 40px 10px;
+    }
+
+    header {
+      text-align: center;
+      padding: 20px 12px;
+      background: var(--card-bg);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border: 1px solid var(--border-color);
+      border-radius: 22px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+      margin: 0 auto 16px auto;
+      max-width: 1000px;
+    }
+
+    h1 {
+      font-family: 'Cormorant Garamond', serif;
+      color: var(--primary);
+      margin: 0 0 4px 0;
+      font-size: 2.1rem;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      text-shadow: 0 1px 2px rgba(255, 255, 255, 0.6);
+    }
+
+    /* Contador Adaptable a pantallas pequeñas */
+    .flip-clock-container {
+      display: flex;
+      justify-content: center;
+      gap: 6px;
+      margin-top: 14px;
+      flex-wrap: wrap;
+    }
+
+    .flip-card-unit {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .flip-card-unit .unit-label {
+      font-size: 0.65rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      margin-top: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .flip-card {
+      background: rgba(28, 25, 23, 0.85);
+      color: #ffffff;
+      font-weight: 700;
+      font-size: 1.35rem;
+      padding: 8px 10px;
+      border-radius: 8px;
+      position: relative;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+      min-width: 44px;
+      text-align: center;
+    }
+
+    .flip-card::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: rgba(0, 0, 0, 0.6);
+      z-index: 2;
+    }
+
+    .grid-container {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 16px;
+      max-width: 1000px;
+      margin: 0 auto;
+    }
+
+    @media (min-width: 768px) {
+      body {
+        padding: 20px 15px 50px 15px;
+      }
+      header {
+        padding: 32px 20px;
+        border-radius: 28px;
+        margin-bottom: 28px;
+      }
+      h1 {
+        font-size: 2.6rem;
+      }
+      .flip-clock-container {
+        gap: 12px;
+      }
+      .flip-card {
+        font-size: 1.8rem;
+        padding: 10px 14px;
+        min-width: 55px;
+      }
+      .flip-card-unit .unit-label {
+        font-size: 0.72rem;
+      }
+      .grid-container {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 24px;
+      }
+    }
+
+    .card {
+      background: var(--card-bg);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      padding: 18px;
+      border-radius: var(--radius);
+      border: 1px solid var(--border-color);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+    }
+
+    @media (min-width: 768px) {
+      .card {
+        padding: 24px;
+      }
+    }
+
+    .card h2 {
+      font-family: 'Cormorant Garamond', serif;
+      margin-top: 0;
+      margin-bottom: 14px;
+      font-size: 1.45rem;
+      color: var(--primary);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 700;
+      text-shadow: 0 1px 2px rgba(255, 255, 255, 0.5);
+    }
+
+    /* Tamaño de fuente 16px mínimo para prevenir Auto-Zoom de iOS Safari */
+    input[type="text"], textarea {
+      width: 100%;
+      padding: 12px 14px;
+      border: 1.5px solid rgba(255, 255, 255, 0.6);
+      border-radius: 12px;
+      font-size: 16px; 
+      font-family: inherit;
+      margin-bottom: 10px;
+      outline: none;
+      background: rgba(255, 255, 255, 0.65);
+      color: var(--text);
+      transition: border-color 0.2s, background-color 0.2s;
+    }
+
+    input[type="text"]:focus, textarea:focus {
+      border-color: var(--primary);
+      background: rgba(255, 255, 255, 0.9);
+    }
+
+    button {
+      width: 100%;
+      background: var(--primary);
+      color: white;
+      border: none;
+      padding: 12px;
+      border-radius: 12px;
+      font-weight: 600;
+      font-size: 0.95rem;
+      font-family: inherit;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(225, 29, 72, 0.25);
+      touch-action: manipulation;
+    }
+
+    button:active {
+      transform: scale(0.98);
+    }
+
+    .item-list {
+      margin-top: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      max-height: 320px;
+      overflow-y: auto;
+      padding-right: 2px;
+    }
+
+    .item-card {
+      background: rgba(255, 255, 255, 0.65);
+      border: 1px solid rgba(255, 255, 255, 0.5);
+      padding: 12px 14px;
+      border-radius: 12px;
+      font-size: 0.9rem;
+      word-break: break-word;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .delete-btn-text {
+      background: transparent;
+      border: none;
+      color: #78716c;
+      cursor: pointer;
+      padding: 4px;
+      width: auto;
+      font-size: 1rem;
+      box-shadow: none;
+    }
+
+    .secret-checkbox-label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-bottom: 10px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+
+    .secret-checkbox-label input {
+      accent-color: var(--primary);
+      width: 18px;
+      height: 18px;
+    }
+
+    .incognito-card {
+      background: rgba(255, 240, 243, 0.85);
+      border: 2px dashed #f43f5e;
+      border-radius: 14px;
+      padding: 12px 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .incognito-info {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 600;
+      color: #be123c;
+      font-size: 0.88rem;
+    }
+
+    .notebook-paper {
+      position: relative;
+      background: rgba(255, 253, 231, 0.92);
+      background-image: linear-gradient(#e0e0e0 1px, transparent 1px);
+      background-size: 100% 26px;
+      line-height: 26px;
+      padding: 16px 16px 12px 36px;
+      border-radius: 4px 10px 10px 4px;
+      box-shadow: 2px 2px 8px rgba(0,0,0,0.08);
+      border-left: 2px solid #ef4444;
+      font-family: 'Caveat', cursive;
+      font-size: 1.35rem;
+      color: #1e293b;
+      margin-top: 5px;
+    }
+
+    .notebook-paper::before {
+      content: '';
+      position: absolute;
+      top: 8px;
+      left: 8px;
+      bottom: 8px;
+      width: 10px;
+      background: repeating-linear-gradient(
+        to bottom,
+        #475569 0px,
+        #475569 5px,
+        transparent 5px,
+        transparent 26px
+      );
+      border-radius: 4px;
+    }
+
+    .notebook-author {
+      display: block;
+      text-align: right;
+      font-size: 1rem;
+      color: #e11d48;
+      margin-top: 8px;
+      font-weight: 700;
+    }
+
+    .gallery-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .photo-card {
+      position: relative;
+      border-radius: 14px;
+      overflow: hidden;
+      background: rgba(245, 245, 244, 0.5);
+      aspect-ratio: 1;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+    }
+
+    .photo-card a {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    .photo-card img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .like-btn {
+      position: absolute;
+      bottom: 6px;
+      right: 6px;
+      background: rgba(255, 255, 255, 0.92);
+      backdrop-filter: blur(4px);
+      border-radius: 16px;
+      padding: 3px 8px;
+      font-size: 0.7rem;
+      width: auto;
+      color: var(--primary);
+    }
+
+    .delete-photo-btn {
+      position: absolute;
+      top: 6px;
+      right: 6px;
+      background: rgba(28, 25, 23, 0.7);
+      color: white;
+      border-radius: 50%;
+      width: 24px;
+      height: 24px;
+      padding: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.7rem;
+    }
+
+    .responsive-iframe {
+      width: 100%;
+      border-radius: 14px;
+      border: 0;
+    }
+
+    #interactiveMap {
+      height: 220px;
+      width: 100%;
+      border-radius: 14px;
+      z-index: 1;
+      touch-action: pan-x pan-y; /* Permite desplazamiento suave en pantallas táctiles */
+    }
+
+    .map-hint {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      margin: 4px 0 8px 0;
+      font-weight: 500;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>Nuestro Rincón Especial ❤️</h1>
+    <p style="margin:0; color: var(--text-muted); font-size: 0.88rem; font-weight: 600;">Llevamos juntos:</p>
+
+    <div class="flip-clock-container">
+      <div class="flip-card-unit">
+        <div class="flip-card" id="flip-years">00</div>
+        <div class="unit-label">Años</div>
+      </div>
+      <div class="flip-card-unit">
+        <div class="flip-card" id="flip-months">00</div>
+        <div class="unit-label">Meses</div>
+      </div>
+      <div class="flip-card-unit">
+        <div class="flip-card" id="flip-days">00</div>
+        <div class="unit-label">Días</div>
+      </div>
+      <div class="flip-card-unit">
+        <div class="flip-card" id="flip-hours">00</div>
+        <div class="unit-label">Horas</div>
+      </div>
+      <div class="flip-card-unit">
+        <div class="flip-card" id="flip-minutes">00</div>
+        <div class="unit-label">Min</div>
+      </div>
+      <div class="flip-card-unit">
+        <div class="flip-card" id="flip-seconds">00</div>
+        <div class="unit-label">Seg</div>
+      </div>
+    </div>
+  </header>
+
+  <main class="grid-container">
+
+    <!-- 1. GALERÍA DE FOTOS -->
+    <section class="card">
+      <h2>📸 Galería en Vivo</h2>
+      <input type="text" id="photoUrlInput" placeholder="Pega el enlace de la imagen (URL)...">
+      <button id="uploadPhotoBtn">Agregar Foto</button>
+      <div id="galleryContainer" class="gallery-grid"></div>
+    </section>
+
+    <!-- 2. NOTAS DE AMOR -->
+    <section class="card">
+      <h2>💌 Notas de Amor</h2>
+      <input type="text" id="authorInput" style="margin-bottom: 8px;" placeholder="Tu nombre (Ej: Angélica / Tu Nombre)">
+      <textarea id="noteInput" rows="3" placeholder="Escribe un mensaje especial..."></textarea>
+      
+      <label class="secret-checkbox-label">
+        <input type="checkbox" id="secretCheck"> 🔒 Guardar como nota secreta
+      </label>
+
+      <button id="addNoteBtn">Dejar Nota</button>
+      <div id="notesList" class="item-list"></div>
+    </section>
+
+    <!-- 3. BUCKET LIST -->
+    <section class="card">
+      <h2>✨ Nuestra Bucket List</h2>
+      <input type="text" id="taskInput" placeholder="Ej: Viajar juntos a la playa...">
+      <button id="addTaskBtn">Agregar Plan</button>
+      <div id="taskList" class="item-list"></div>
+    </section>
+
+    <!-- 4. LUGARES ESPECIALES -->
+    <section class="card">
+      <h2>📍 Lugares Especiales</h2>
+      <input type="text" id="placeInput" placeholder="Ej: Parque del Amor, Miraflores">
+      <button id="addPlaceBtn">Buscar y Guardar Lugar</button>
+      <p class="map-hint">💡 Tip: Escribe nombre + ciudad o toca directo en el mapa.</p>
+      <div id="interactiveMap"></div>
+      <div id="placesList" class="item-list"></div>
+    </section>
+
+    <!-- 5. LA MELODÍA DE NUESTROS DÍAS -->
+    <section class="card" style="grid-column: 1 / -1;">
+      <h2>🎵 La melodía de nuestros días</h2>
+      <input type="text" id="scUrlInput" placeholder="Pega el link de SoundCloud o código embed...">
+      <button id="saveScBtn" style="margin-bottom: 10px;">Actualizar Música</button>
+      <div id="scContainer">
+        <iframe class="responsive-iframe" id="scPlayer" height="166" 
+                src="https://w.soundcloud.com/player/?url=https%3A//api.soundcloud.com/tracks/293&color=%23e11d48&auto_play=false&hide_related=true&show_comments=false&show_user=true&show_reposts=false&show_teaser=false" 
+                allow="autoplay" 
+                loading="lazy"></iframe>
+      </div>
+    </section>
+
+  </main>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, doc, updateDoc, setDoc, deleteDoc, increment } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyC2NQkuK2x2dH5vw0kay6Yjf-Ax8DbZG7w",
+      authDomain: "nuestroespacio-a9a84.firebaseapp.com",
+      projectId: "nuestroespacio-a9a84",
+      storageBucket: "nuestroespacio-a9a84.firebasestorage.app",
+      messagingSenderId: "310341819728",
+      appId: "1:310341819728:web:abcdef123456789"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    // CONTADOR FLIP CLOCK
+    const startDate = new Date('2020-09-19T00:00:00');
+
+    function padZero(num) {
+      return num < 10 ? '0' + num : num;
+    }
+
+    function updateFlipClock() {
+      const now = new Date();
+      
+      let years = now.getFullYear() - startDate.getFullYear();
+      let months = now.getMonth() - startDate.getMonth();
+      let days = now.getDate() - startDate.getDate();
+      let hours = now.getHours() - startDate.getHours();
+      let minutes = now.getMinutes() - startDate.getMinutes();
+      let seconds = now.getSeconds() - startDate.getSeconds();
+
+      if (seconds < 0) { seconds += 60; minutes--; }
+      if (minutes < 0) { minutes += 60; hours--; }
+      if (hours < 0) { hours += 24; days--; }
+      if (days < 0) {
+        months--;
+        const lastMonth = new Date(now.getFullYear(), now.getMonth(), 0);
+        days += lastMonth.getDate();
+      }
+      if (months < 0) { years--; months += 12; }
+
+      document.getElementById('flip-years').textContent = padZero(years);
+      document.getElementById('flip-months').textContent = padZero(months);
+      document.getElementById('flip-days').textContent = padZero(days);
+      document.getElementById('flip-hours').textContent = padZero(hours);
+      document.getElementById('flip-minutes').textContent = padZero(minutes);
+      document.getElementById('flip-seconds').textContent = padZero(seconds);
+    }
+    updateFlipClock();
+    setInterval(updateFlipClock, 1000);
+
+    // GALERÍA DE FOTOS
+    const photoUrlInput = document.getElementById('photoUrlInput');
+    const uploadPhotoBtn = document.getElementById('uploadPhotoBtn');
+    const galleryContainer = document.getElementById('galleryContainer');
+
+    if (uploadPhotoBtn && photoUrlInput) {
+      uploadPhotoBtn.addEventListener('click', async () => {
+        const url = photoUrlInput.value.trim();
+        if (url) {
+          await addDoc(collection(db, "photos"), { url: url, likes: 0, createdAt: new Date() });
+          photoUrlInput.value = "";
+        }
+      });
+    }
+
+    onSnapshot(query(collection(db, "photos"), orderBy("createdAt", "desc")), (snapshot) => {
+      if (!galleryContainer) return;
+      galleryContainer.innerHTML = "";
+      snapshot.forEach((item) => {
+        const data = item.data();
+        const div = document.createElement("div");
+        div.className = "photo-card";
+        div.innerHTML = `
+          <button class="delete-photo-btn" onclick="deleteItem('photos', '${item.id}')" title="Eliminar foto">✕</button>
+          <a href="${data.url}" target="_blank">
+            <img src="${data.url}" alt="Foto" onerror="this.src='https://via.placeholder.com/150?text=Abrir+Link';">
+          </a>
+          <button class="like-btn" onclick="likePhoto('${item.id}')">❤️ ${data.likes || 0}</button>
+        `;
+        galleryContainer.appendChild(div);
+      });
+    });
+
+    // @ts-ignore
+    window.likePhoto = async (id) => {
+      const photoRef = doc(db, "photos", id);
+      await updateDoc(photoRef, { likes: increment(1) });
+    };
+
+    // ELIMINAR ELEMENTOS
+    // @ts-ignore
+    window.deleteItem = async (collectionName, id) => {
+      if (confirm("¿Deseas eliminar este elemento?")) {
+        await deleteDoc(doc(db, collectionName, id));
+      }
+    };
+
+    // NOTAS DE AMOR
+    const authorInput = document.getElementById('authorInput');
+    const noteInput = document.getElementById('noteInput');
+    const secretCheck = document.getElementById('secretCheck');
+    const addNoteBtn = document.getElementById('addNoteBtn');
+    const notesList = document.getElementById('notesList');
+
+    if (addNoteBtn && noteInput) {
+      addNoteBtn.addEventListener('click', async () => {
+        const text = noteInput.value.trim();
+        const author = authorInput.value.trim() || 'Alguien especial';
+        const isSecret = secretCheck.checked;
+
+        if (text) {
+          await addDoc(collection(db, "notes"), { 
+            text: text, 
+            author: author,
+            isSecret: isSecret,
+            createdAt: new Date() 
+          });
+          noteInput.value = "";
+          secretCheck.checked = false;
+        }
+      });
+    }
+
+    // @ts-ignore
+    window.revealNote = (elementId) => {
+      const noteEl = document.getElementById(`note-content-${elementId}`);
+      const incognitoEl = document.getElementById(`incognito-card-${elementId}`);
+      if (noteEl && incognitoEl) {
+        incognitoEl.style.display = 'none';
+        noteEl.style.display = 'block';
+      }
+    };
+
+    onSnapshot(query(collection(db, "notes"), orderBy("createdAt", "desc")), (snapshot) => {
+      if (!notesList) return;
+      notesList.innerHTML = "";
+
+      snapshot.forEach((item) => {
+        const data = item.data();
+        const div = document.createElement("div");
+        const docId = item.id;
+
+        if (data.isSecret) {
+          div.innerHTML = `
+            <div id="incognito-card-${docId}" class="incognito-card" onclick="revealNote('${docId}')">
+              <div class="incognito-info">
+                <span>💌 Nota secreta de <b>${data.author || 'Alguien'}</b></span>
+              </div>
+              <button class="delete-btn-text" onclick="event.stopPropagation(); deleteItem('notes', '${docId}')">🗑️</button>
+            </div>
+
+            <div id="note-content-${docId}" class="notebook-paper" style="display: none;" onclick="this.style.display='none'; document.getElementById('incognito-card-${docId}').style.display='flex';">
+              <button class="delete-btn-text" style="float: right; margin-top: -5px;" onclick="event.stopPropagation(); deleteItem('notes', '${docId}')">🗑️</button>
+              <div>${data.text}</div>
+              <span class="notebook-author"> Con amor, ${data.author || 'Alguien'} ❤️</span>
+            </div>
+          `;
+        } else {
+          div.className = "notebook-paper";
+          div.innerHTML = `
+            <button class="delete-btn-text" style="float: right; margin-top: -5px;" onclick="event.stopPropagation(); deleteItem('notes', '${docId}')">🗑️</button>
+            <div>${data.text}</div>
+            <span class="notebook-author">— ${data.author || 'Alguien'} ❤️</span>
+          `;
+        }
+
+        notesList.appendChild(div);
+      });
+    });
+
+    // BUCKET LIST
+    const taskInput = document.getElementById('taskInput');
+    const addTaskBtn = document.getElementById('addTaskBtn');
+    const taskList = document.getElementById('taskList');
+
+    if (addTaskBtn && taskInput) {
+      addTaskBtn.addEventListener('click', async () => {
+        if (taskInput.value.trim()) {
+          await addDoc(collection(db, "tasks"), { text: taskInput.value.trim(), createdAt: new Date() });
+          taskInput.value = "";
+        }
+      });
+    }
+
+    onSnapshot(query(collection(db, "tasks"), orderBy("createdAt", "desc")), (snapshot) => {
+      if (!taskList) return;
+      taskList.innerHTML = "";
+      snapshot.forEach((item) => {
+        const div = document.createElement("div");
+        div.className = "item-card";
+        div.innerHTML = `
+          <span>✨ ${item.data().text}</span>
+          <button class="delete-btn-text" onclick="deleteItem('tasks', '${item.id}')">🗑️</button>
+        `;
+        taskList.appendChild(div);
+      });
+    });
+
+    // LUGARES ESPECIALES (Optimizado para toques en móvil)
+    delete L.Icon.Default.prototype._getIconUrl;
+    L.Icon.Default.mergeOptions({
+      iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+      iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+      shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+    });
+
+    // @ts-ignore
+    const map = L.map('interactiveMap', { tap: true }).setView([-12.046374, -77.042793], 11);
+    // @ts-ignore
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '© OpenStreetMap'
+    }).addTo(map);
+
+    let mapMarkers = [];
+    const placeInput = document.getElementById('placeInput');
+    const addPlaceBtn = document.getElementById('addPlaceBtn');
+    const placesList = document.getElementById('placesList');
+
+    async function getCoordinates(query) {
+      try {
+        const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}`, {
+          headers: { 'User-Agent': 'NuestroEspacioApp/1.0' }
+        });
+        const data = await res.json();
+        if (data && data.length > 0) {
+          return { lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon) };
+        }
+      } catch (e) {
+        console.error("Error buscando coordenadas:", e);
+      }
+      return null;
+    }
+
+    if (addPlaceBtn && placeInput) {
+      addPlaceBtn.addEventListener('click', async () => {
+        const placeName = placeInput.value.trim();
+        if (placeName) {
+          addPlaceBtn.textContent = "Buscando...";
+          const coords = await getCoordinates(placeName);
+          
+          await addDoc(collection(db, "places"), {
+            text: placeName,
+            lat: coords ? coords.lat : null,
+            lon: coords ? coords.lon : null,
+            createdAt: new Date()
+          });
+
+          if (coords) {
+            map.setView([coords.lat, coords.lon], 15);
+          } else {
+            alert("Guardamos el lugar en la lista.");
+          }
+
+          placeInput.value = "";
+          addPlaceBtn.textContent = "Buscar y Guardar Lugar";
+        }
+      });
+    }
+
+    map.on('click', async (e) => {
+      const lat = e.latlng.lat;
+      const lon = e.latlng.lng;
+      const customName = prompt("Ingresa el nombre para este punto en el mapa:");
+      if (customName && customName.trim()) {
+        await addDoc(collection(db, "places"), {
+          text: customName.trim(),
+          lat: lat,
+          lon: lon,
+          createdAt: new Date()
+        });
+      }
+    });
+
+    // @ts-ignore
+    window.focusPlaceOnMap = (lat, lon) => {
+      if (lat && lon) {
+        map.setView([lat, lon], 16);
+      }
+    };
+
+    onSnapshot(query(collection(db, "places"), orderBy("createdAt", "desc")), (snapshot) => {
+      if (!placesList) return;
+      
+      mapMarkers.forEach(m => map.removeLayer(m));
+      mapMarkers = [];
+      placesList.innerHTML = "";
+
+      snapshot.forEach((item) => {
+        const data = item.data();
+        const div = document.createElement("div");
+        div.className = "item-card";
+        
+        if (data.lat && data.lon) {
+          div.setAttribute("onclick", `focusPlaceOnMap(${data.lat}, ${data.lon})`);
+          // @ts-ignore
+          const marker = L.marker([data.lat, data.lon]).addTo(map).bindPopup(`<b>${data.text}</b>`);
+          mapMarkers.push(marker);
+        }
+
+        div.innerHTML = `
+          <span>📍 ${data.text} ${data.lat ? '' : '<small>(Sin mapa)</small>'}</span>
+          <button class="delete-btn-text" onclick="event.stopPropagation(); deleteItem('places', '${item.id}')">🗑️</button>
+        `;
+        placesList.appendChild(div);
+      });
+    });
+
+    // SOUNDCLOUD INTEGRADO
+    const scUrlInput = document.getElementById('scUrlInput');
+    const saveScBtn = document.getElementById('saveScBtn');
+    const scPlayer = document.getElementById('scPlayer');
+
+    function convertSoundCloudUrlToEmbed(input) {
+      let raw = input.trim();
+      if (raw.includes('<iframe') && raw.includes('src=')) {
+        const matches = raw.match(/src="([^"]+)"/);
+        if (matches && matches[1]) return matches[1];
+      }
+      if (raw.includes('w.soundcloud.com/player/')) return raw;
+      
+      const encodedUrl = encodeURIComponent(raw);
+      return `https://w.soundcloud.com/player/?url=${encodedUrl}&color=%23e11d48&auto_play=false&hide_related=true&show_comments=false&show_user=true&show_reposts=false&show_teaser=false`;
+    }
+
+    if (saveScBtn && scUrlInput) {
+      saveScBtn.addEventListener('click', async () => {
+        const inputVal = scUrlInput.value.trim();
+        if (inputVal) {
+          const embedUrl = convertSoundCloudUrlToEmbed(inputVal);
+          await setDoc(doc(db, "settings", "soundcloud"), { embedUrl: embedUrl });
+          scUrlInput.value = "";
+        }
+      });
+    }
+
+    onSnapshot(doc(db, "settings", "soundcloud"), (docSnap) => {
+      if (docSnap.exists() && scPlayer) {
+        const data = docSnap.data();
+        if (data.embedUrl) {
+          scPlayer.src = data.embedUrl;
+        }
+      }
+    });
+
+  </script>
+</body>
+</html>
